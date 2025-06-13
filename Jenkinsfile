@@ -8,21 +8,11 @@ pipeline {
         stage('Setup Environment') {
             steps {
                 sh """
-                    echo 'Installing Maven & Terraform on Amazon Linux 2...'
-                    
-                    # Install Maven
-                    sudo -E yum update -y
-                    sudo -E yum install -y maven
-                    
-                    # Verify Maven installation
-                    mvn -version
-                    
-                    # Install Terraform
-                    sudo -E yum install -y unzip
+                    echo 'Installing Terraform...'
+                    sudo yum install -y unzip
                     wget -qO terraform.zip https://releases.hashicorp.com/terraform/1.5.0/terraform_1.5.0_linux_amd64.zip
-                    sudo -E unzip terraform.zip -d /usr/local/bin
+                    sudo unzip terraform.zip -d /usr/local/bin
                     terraform version
-                    
                     echo 'Installation complete!'
                 """
             }
