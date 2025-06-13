@@ -1,16 +1,39 @@
 pipeline {
     agent any
     environment {
-        DOCKER_IMAGE = "nginx"
+        DOCKER_IMAGE = "your-repo/my-app:latest"
         TERRAFORM_DIR = "terraform"
     }
     stages {
-        stage('Checkout') {
+        stage('Setup Environment') {
             steps {
-                git branch: 'main',  url: 'https://github.com/krishapatel180305/simple-java-maven-2025.git'
+                sh """
+                    echo 'Installing Maven & Terraform on Amazon Linux 2...'
+                    
+                    # Install Maven
+                    sudo yum update -y
+                    sudo yum install -y maven
+                    
+                    # Verify Maven installation
+                    mvn -version
+                    
+                    # Install Terraform
+                    sudo yum install -y unzip
+                    wget -qO terraform.zip https://releases.hashicorp.com/terraform/1.5.0/terraform_1.5.0_linux_amd64.zip
+                    sudo unzip terraform.zip -d /usr/local/bin
+                    terraform version
+                    
+                    echo 'Installation complete!'
+                """
             }
         }
         
+        stage('Checkout') {
+            steps {
+                git branch: 'main', credentialsId: 'your-git-credential-id', url: 'https://github.com/krishapatel180305/simple-java-maven-2025.git'
+            }
+        }
+
         stage('Build & Test') {
             steps {
                 sh """
@@ -23,15 +46,10 @@ pipeline {
         stage('Terraform Apply') {
             steps {
                 sh """
-                    if [ -d "${TERRAFORM_DIR}" ]; then
-                        cd ${TERRAFORM_DIR}
-                        terraform init
-                        terraform plan -out=tfplan
-                        terraform apply -auto-approve tfplan
-                    else
-                        echo "ERROR: Terraform directory does not exist!"
-                        exit 1
-                    fi
+                    cd ${TERRAFORM_DIR}
+                    terraform init
+                    terraform plan -out=tfplan
+                    terraform apply -auto-approve tfplan
                 """
             }
         }
