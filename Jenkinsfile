@@ -1,8 +1,8 @@
 pipeline {
     agent any
     environment {
-        DOCKER_IMAGE = "nginx"
         TERRAFORM_DIR = "terraform"
+        DOCKER_IMAGE = "nginx"
     }
     stages {
         stage('Setup Environment') {
@@ -34,39 +34,37 @@ pipeline {
             }
         }
 
-        stage('Build & Test') {
-            steps {
-                sh """
-                    mvn clean package
-                    java -jar target/*.jar
-                """
-            }
-        }
-
-        stage('Terraform Apply') {
+        stage('Terraform Apply - Create EC2') {
             steps {
                 sh """
                     cd ${TERRAFORM_DIR}
                     terraform init
                     terraform plan -out=tfplan
                     terraform apply -auto-approve tfplan
+                    
+                    # Capture instance IP
+                    INSTANCE_IP=$(terraform output -raw public_ip)
+                    echo "AWS EC2 Instance Created: $INSTANCE_IP"
                 """
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Deploy Docker on EC2') {
             steps {
                 sh """
-                    docker build -t ${DOCKER_IMAGE} .
-                    docker push ${DOCKER_IMAGE}
-                """
-            }
-        }
-
-        stage('Deploy Container') {
-            steps {
-                sh """
-                    docker run -d -p 80:80 --name my-app ${DOCKER_IMAGE}
+                    INSTANCE_IP=$(terraform output -raw public_ip)
+                    
+                    echo "Connecting to EC2 instance..."
+                    
+                    ssh -o StrictHostKeyChecking=no ec2-user@$INSTANCE_IP <<EOF
+                        sudo yum update -y
+                        sudo yum install -y docker
+                        sudo systemctl start docker
+                        sudo systemctl enable docker
+                        sudo docker pull ${DOCKER_IMAGE}
+                        sudo docker run -d -p 80:80 ${DOCKER_IMAGE}
+                        echo 'Docker container deployed successfully!'
+                    EOF
                 """
             }
         }
