@@ -55,26 +55,24 @@ pipeline {
             }
         }
 
-        stage('Deploy Docker on EC2') {
-            steps {
-                script {
-                    if (env.INSTANCE_IP) {
-                        sh """
-                            echo "Connecting to EC2 instance at ${env.INSTANCE_IP}..."
-                            ssh -o StrictHostKeyChecking=no ec2-user@${env.INSTANCE_IP} <<EOF
-                                sudo yum update -y
-                                sudo yum install -y docker
-                                sudo systemctl start docker
-                                sudo systemctl enable docker
-                                sudo docker pull ${env.DOCKER_IMAGE}
-                                sudo docker run -d -p 80:80 ${env.DOCKER_IMAGE}
-                                echo 'Docker container deployed successfully!'
-                            EOF
-                        """
-                    } else {
-                        error "Instance IP not found! Terraform may have failed."
-                    }
-                }
+stage('Deploy Docker on EC2') {
+    steps {
+        script {
+            if (env.INSTANCE_IP) {
+                sh """
+                    echo "Connecting to EC2 instance at ${env.INSTANCE_IP}..."
+                    ssh -i ~/.ssh/my-key.pem -o StrictHostKeyChecking=no ec2-user@${env.INSTANCE_IP} <<EOF
+                        sudo yum update -y
+                        sudo yum install -y docker
+                        sudo systemctl start docker
+                        sudo systemctl enable docker
+                        sudo docker pull ${env.DOCKER_IMAGE}
+                        sudo docker run -d -p 80:80 ${env.DOCKER_IMAGE}
+                        echo 'Docker container deployed successfully!'
+                    EOF
+                """
+            } else {
+                error "Instance IP not found! Terraform may have failed."
             }
         }
     }
