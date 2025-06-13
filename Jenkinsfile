@@ -9,14 +9,16 @@ pipeline {
             steps {
                 sh """
                     echo 'Installing Terraform, Git, Java...'
-                    sudo yum install -y unzip git java-11-openjdk
+                    sudo visudo -c || echo 'Error: sudoers file issue' && exit 1
+                    sudo yum install -y unzip git java-11-openjdk || { echo 'Error: Installation failed'; exit 1; }
+                    
                     wget -qO terraform.zip https://releases.hashicorp.com/terraform/1.5.0/terraform_1.5.0_linux_amd64.zip
                     sudo unzip -o terraform.zip -d /usr/local/bin
                     terraform version
                 """
             }
         }
-        
+
         stage('Checkout Code') {
             steps {
                 git branch: 'main', url: 'https://github.com/krishapatel180305/simple-java-maven-2025.git'
@@ -38,7 +40,7 @@ pipeline {
                 sh """
                     cd ${env.TERRAFORM_DIR} || { echo "ERROR: Terraform directory does not exist!"; exit 1; }
                     terraform init
-                    terraform apply -auto-approve
+                    terraform apply -auto-approve || { echo "ERROR: Terraform execution failed!"; exit 1; }
                 """
                 script {
                     env.INSTANCE_IP = sh(script: "cd ${env.TERRAFORM_DIR} && terraform output -raw instance_public_ip", returnStdout: true).trim()
