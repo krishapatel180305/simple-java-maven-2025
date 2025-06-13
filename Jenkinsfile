@@ -29,7 +29,7 @@ pipeline {
                 sh """
                     echo "Verifying Terraform directory..."
                     ls -l
-                    [ -d ${env.TERRAFORM_DIR} ] || { echo "Terraform directory does not exist after checkout!"; exit 1; }
+                    [ -d ${env.TERRAFORM_DIR} ] || { echo "ERROR: Terraform directory does not exist!"; exit 1; }
                 """
             }
         }
@@ -47,7 +47,7 @@ pipeline {
                     terraform apply -auto-approve
                 """
                 script {
-                    env.INSTANCE_IP = sh(script: "cd terraform && terraform output -raw public_ip", returnStdout: true).trim()
+                    env.INSTANCE_IP = sh(script: "cd terraform && terraform output -raw instance_public_ip", returnStdout: true).trim()
                     if (!env.INSTANCE_IP) error "Failed to retrieve EC2 instance IP!"
                 }
             }
