@@ -5,16 +5,10 @@ pipeline {
         DOCKER_IMAGE = "nginx"
     }
     stages {
-        stage('Workspace Cleanup') {
-            steps {
-                cleanWs()
-            }
-        }
-
         stage('Setup Environment') {
             steps {
                 sh """
-                    echo 'Installing Terraform...'
+                    echo 'Installing Terraform, Git, Java...'
                     sudo yum install -y unzip git java-11-openjdk
                     wget -qO terraform.zip https://releases.hashicorp.com/terraform/1.5.0/terraform_1.5.0_linux_amd64.zip
                     sudo unzip -o terraform.zip -d /usr/local/bin
@@ -27,9 +21,14 @@ pipeline {
             steps {
                 git branch: 'main', url: 'https://github.com/krishapatel180305/simple-java-maven-2025.git'
                 sh """
-                    echo "Verifying Terraform directory..."
+                    echo "Verifying Terraform configuration..."
                     ls -l
-                    [ -d ${env.TERRAFORM_DIR} ] || { echo "ERROR: Terraform directory does not exist!"; exit 1; }
+                    if [ ! -f main.tf ]; then
+                        echo "ERROR: Terraform file main.tf is missing!"
+                        exit 1
+                    fi
+                    mkdir -p ${env.TERRAFORM_DIR}
+                    mv main.tf ${env.TERRAFORM_DIR}/
                 """
             }
         }
@@ -37,17 +36,12 @@ pipeline {
         stage('Terraform Apply') {
             steps {
                 sh """
-                    if [ ! -d "${env.TERRAFORM_DIR}" ]; then
-                        echo "ERROR: Terraform directory does not exist!"
-                        exit 1
-                    fi
-
-                    cd ${env.TERRAFORM_DIR}
+                    cd ${env.TERRAFORM_DIR} || { echo "ERROR: Terraform directory does not exist!"; exit 1; }
                     terraform init
                     terraform apply -auto-approve
                 """
                 script {
-                    env.INSTANCE_IP = sh(script: "cd terraform && terraform output -raw instance_public_ip", returnStdout: true).trim()
+                    env.INSTANCE_IP = sh(script: "cd ${env.TERRAFORM_DIR} && terraform output -raw instance_public_ip", returnStdout: true).trim()
                     if (!env.INSTANCE_IP) error "Failed to retrieve EC2 instance IP!"
                 }
             }
@@ -56,7 +50,7 @@ pipeline {
         stage('Install Dependencies on EC2') {
             steps {
                 sh """
-                    echo "Installing Docker, Terraform, Git, and Java on ${env.INSTANCE_IP}..."
+                    echo "Installing Docker, Git, Java, and Terraform on ${env.INSTANCE_IP}..."
                     ssh -i ~/.ssh/my-key.pem -o StrictHostKeyChecking=no ec2-user@${env.INSTANCE_IP} <<EOF
                         sudo yum update -y
                         sudo yum install -y docker git java-11-openjdk
