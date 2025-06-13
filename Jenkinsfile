@@ -9,11 +9,16 @@ pipeline {
             steps {
                 sh """
                     echo 'Installing Terraform...'
-                    sudo yum install -y unzip
-                    wget -qO terraform.zip https://releases.hashicorp.com/terraform/1.5.0/terraform_1.5.0_linux_amd64.zip
-                    sudo unzip terraform.zip -d /usr/local/bin
-                    terraform version
-                    echo 'Installation complete!'
+            sudo yum install -y unzip
+            
+            # Download Terraform
+            wget -qO terraform.zip https://releases.hashicorp.com/terraform/1.5.0/terraform_1.5.0_linux_amd64.zip
+            
+            # Force overwrite existing Terraform binary
+            sudo unzip -o terraform.zip -d /usr/local/bin
+            
+            terraform version
+            echo 'Installation complete!'
                 """
             }
         }
