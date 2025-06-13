@@ -5,6 +5,12 @@ pipeline {
         DOCKER_IMAGE = "nginx"
     }
     stages {
+        stage('Workspace Cleanup') {
+            steps {
+                cleanWs()
+            }
+        }
+
         stage('Setup Environment') {
             steps {
                 sh """
@@ -20,16 +26,25 @@ pipeline {
         stage('Checkout Code') {
             steps {
                 git branch: 'main', url: 'https://github.com/krishapatel180305/simple-java-maven-2025.git'
+                sh """
+                    echo "Verifying Terraform directory..."
+                    ls -l
+                    [ -d ${env.TERRAFORM_DIR} ] || { echo "Terraform directory does not exist after checkout!"; exit 1; }
+                """
             }
         }
 
         stage('Terraform Apply') {
             steps {
                 sh """
-                    cd ${env.TERRAFORM_DIR} || { echo "Terraform directory does not exist!"; exit 1; }
+                    if [ ! -d "${env.TERRAFORM_DIR}" ]; then
+                        echo "ERROR: Terraform directory does not exist!"
+                        exit 1
+                    fi
+
+                    cd ${env.TERRAFORM_DIR}
                     terraform init
                     terraform apply -auto-approve
-                    echo "Terraform execution complete."
                 """
                 script {
                     env.INSTANCE_IP = sh(script: "cd terraform && terraform output -raw public_ip", returnStdout: true).trim()
