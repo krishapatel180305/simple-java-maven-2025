@@ -12,6 +12,7 @@ resource "aws_instance" "Tf-instance" {
 
   provisioner "remote-exec" {
     inline = [
+      "echo 'Defaults:ec2-user !requiretty' | sudo tee -a /etc/sudoers",
       "sudo yum update -y",
       "sudo yum install -y docker git java-11-openjdk",
       "sudo systemctl start docker",
