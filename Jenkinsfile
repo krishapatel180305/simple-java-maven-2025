@@ -7,10 +7,19 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', credentialsId: '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', url: 'https://github.com/krishapatel180305/simple-java-maven-2025.git'
+                git branch: 'main',  url: 'https://github.com/krishapatel180305/simple-java-maven-2025.git'
             }
         }
         
+        stage('Build & Test') {
+            steps {
+                sh """
+                    mvn clean package
+                    java -jar target/*.jar
+                """
+            }
+        }
+
         stage('Terraform Apply') {
             steps {
                 sh """
@@ -26,7 +35,7 @@ pipeline {
                 """
             }
         }
-        
+
         stage('Build Docker Image') {
             steps {
                 sh """
@@ -35,7 +44,7 @@ pipeline {
                 """
             }
         }
-        
+
         stage('Deploy Container') {
             steps {
                 sh """
