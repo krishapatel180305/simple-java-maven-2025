@@ -1,7 +1,7 @@
 pipeline {
     agent any
     environment {
-        DOCKER_IMAGE = "your-repo/my-app:latest"
+        DOCKER_IMAGE = "nginx"
         TERRAFORM_DIR = "terraform"
     }
     stages {
@@ -30,7 +30,7 @@ pipeline {
         
         stage('Checkout') {
             steps {
-                git branch: 'main', credentialsId: 'your-git-credential-id', url: 'https://github.com/krishapatel180305/simple-java-maven-2025.git'
+                git branch: 'main', url: 'https://github.com/krishapatel180305/simple-java-maven-2025.git'
             }
         }
 
