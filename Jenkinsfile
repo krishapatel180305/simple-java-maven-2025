@@ -9,70 +9,59 @@ pipeline {
             steps {
                 sh """
                     echo 'Installing Terraform...'
-                    sudo yum install -y unzip
-                    
-                    # Download Terraform
+                    sudo yum install -y unzip git java-11-openjdk
                     wget -qO terraform.zip https://releases.hashicorp.com/terraform/1.5.0/terraform_1.5.0_linux_amd64.zip
-                    
-                    # Force overwrite existing Terraform binary
                     sudo unzip -o terraform.zip -d /usr/local/bin
-                    
                     terraform version
-                    echo 'Installation complete!'
                 """
             }
         }
         
-        stage('Checkout') {
+        stage('Checkout Code') {
             steps {
                 git branch: 'main', url: 'https://github.com/krishapatel180305/simple-java-maven-2025.git'
             }
         }
 
-        stage('Terraform Apply - Create EC2') {
+        stage('Terraform Apply') {
             steps {
                 sh """
-                    if [ -d "${env.TERRAFORM_DIR}" ]; then
-                        cd "${env.TERRAFORM_DIR}"
-                        terraform init
-                        terraform plan -out=tfplan
-                        terraform apply -auto-approve tfplan
-                    else
-                        echo "ERROR: Terraform directory does not exist!"
-                        exit 1
-                    fi
+                    cd ${env.TERRAFORM_DIR} || { echo "Terraform directory does not exist!"; exit 1; }
+                    terraform init
+                    terraform apply -auto-approve
+                    echo "Terraform execution complete."
                 """
-
                 script {
-                    def instanceIp = sh(script: "cd terraform && terraform output -raw public_ip", returnStdout: true).trim()
-                    if (instanceIp) {
-                        env.INSTANCE_IP = instanceIp
-                        echo "AWS EC2 Instance Created: ${env.INSTANCE_IP}"
-                    } else {
-                        error "Failed to retrieve EC2 instance IP!"
-                    }
+                    env.INSTANCE_IP = sh(script: "cd terraform && terraform output -raw public_ip", returnStdout: true).trim()
+                    if (!env.INSTANCE_IP) error "Failed to retrieve EC2 instance IP!"
                 }
             }
         }
 
-stage('Deploy Docker on EC2') {
-    steps {
-        script {
-            if (env.INSTANCE_IP) {
+        stage('Install Dependencies on EC2') {
+            steps {
                 sh """
-                    echo "Connecting to EC2 instance at ${env.INSTANCE_IP}..."
+                    echo "Installing Docker, Terraform, Git, and Java on ${env.INSTANCE_IP}..."
                     ssh -i ~/.ssh/my-key.pem -o StrictHostKeyChecking=no ec2-user@${env.INSTANCE_IP} <<EOF
                         sudo yum update -y
-                        sudo yum install -y docker
+                        sudo yum install -y docker git java-11-openjdk
                         sudo systemctl start docker
                         sudo systemctl enable docker
-                        sudo docker pull ${env.DOCKER_IMAGE}
-                        sudo docker run -d -p 80:80 ${env.DOCKER_IMAGE}
-                        echo 'Docker container deployed successfully!'
+                        echo "Installation complete!"
                     EOF
                 """
-            } else {
-                error "Instance IP not found! Terraform may have failed."
+            }
+        }
+
+        stage('Deploy Docker Container') {
+            steps {
+                sh """
+                    echo "Deploying Docker on ${env.INSTANCE_IP}..."
+                    ssh -i ~/.ssh/my-key.pem -o StrictHostKeyChecking=no ec2-user@${env.INSTANCE_IP} <<EOF
+                        sudo docker run -d -p 80:80 ${env.DOCKER_IMAGE}
+                        echo 'Docker container deployment successful!'
+                    EOF
+                """
             }
         }
     }
