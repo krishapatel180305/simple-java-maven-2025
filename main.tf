@@ -1,34 +1,34 @@
 provider "aws" {
-  region = "us-east-1"
+  region = "us-east-1"  # Change to your desired region
 }
 
-resource "aws_instance" "Tf-instance" {
-  ami           = "ami-0f3f13f145e66a0a3"
+resource "aws_key_pair" "generated_key" {
+  key_name   = "terraform-key"
+  public_key = tls_private_key.generated.public_key_openssh
+}
+
+resource "tls_private_key" "generated" {
+  algorithm = "RSA"
+}
+
+resource "aws_instance" "jenkins_server" {
+  ami           = "ami-0947d2ba12ee1ff75"  # Amazon Linux 2 AMI (ensure it's correct for your region)
   instance_type = "t2.micro"
+  key_name      = aws_key_pair.generated_key.key_name
+
+  user_data = <<-EOF
+    #!/bin/bash
+    sudo yum update -y
+    sudo yum install -y docker git
+    sudo systemctl enable docker && sudo systemctl start docker
+    sudo docker run -d -p 80:80 --name nginx-container nginx
+  EOF
 
   tags = {
-    Name = "Jenkins-CI-CD-Instance"
-  }
-
-  provisioner "remote-exec" {
-    inline = [
-      "echo 'Defaults:ec2-user !requiretty' | sudo tee -a /etc/sudoers",
-      "sudo yum update -y",
-      "sudo yum install -y docker git java-11-openjdk",
-      "sudo systemctl start docker",
-      "sudo systemctl enable docker"
-    ]
-  }
-
-  connection {
-    type        = "ssh"
-    user        = "ec2-user"
-    private_key = file("~/.ssh/my-key.pem")
-    host        = self.public_ip
+    Name = "Terraform-Automated-Instance"
   }
 }
 
-output "instance_public_ip" {
-  description = "The public IP address of the EC2 instance"
-  value       = aws_instance.Tf-instance.public_ip
+output "instance_ip" {
+  value = aws_instance.jenkins_server.public_ip
 }
