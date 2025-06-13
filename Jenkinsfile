@@ -7,18 +7,16 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 sh '''
-                sudo yum update -y
+                sudo yum update -y || true
                 sudo yum install -y docker git unzip || true
                 sudo systemctl start docker || true
                 sudo systemctl enable docker || true
 
-                # Install Terraform
-                sudo yum install -y yum-utils
-                sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
-                sudo yum -y install terraform
-
+                # Manually Install Terraform (No HashiCorp Repo)
+                wget https://releases.hashicorp.com/terraform/1.6.6/terraform_1.6.6_linux_amd64.zip
+                unzip terraform_1.6.6_linux_amd64.zip
+                sudo mv terraform /usr/local/bin/
                 terraform --version
-                docker --version
                 '''
             }
         }
