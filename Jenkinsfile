@@ -8,9 +8,9 @@ pipeline {
             steps {
                 sh '''
                 sudo yum update -y
-                sudo yum install -y docker git unzip
-                sudo systemctl start docker
-                sudo systemctl enable docker
+                sudo yum install -y docker git unzip || true
+                sudo systemctl start docker || true
+                sudo systemctl enable docker || true
 
                 # Install Terraform
                 sudo yum install -y yum-utils
