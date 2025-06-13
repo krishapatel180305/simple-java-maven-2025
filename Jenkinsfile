@@ -9,7 +9,10 @@ pipeline {
             steps {
                 sh """
                     echo 'Installing Terraform, Git, Java...'
-                    sudo visudo -c || echo 'Error: sudoers file issue' && exit 1
+                    
+                    # Ensure sudo runs without tty issues
+                    echo 'Defaults:jenkins !requiretty' | sudo tee -a /etc/sudoers
+                    
                     sudo yum install -y unzip git java-11-openjdk || { echo 'Error: Installation failed'; exit 1; }
                     
                     wget -qO terraform.zip https://releases.hashicorp.com/terraform/1.5.0/terraform_1.5.0_linux_amd64.zip
@@ -54,6 +57,7 @@ pipeline {
                 sh """
                     echo "Installing Docker, Git, Java, and Terraform on ${env.INSTANCE_IP}..."
                     ssh -i ~/.ssh/my-key.pem -o StrictHostKeyChecking=no ec2-user@${env.INSTANCE_IP} <<EOF
+                        echo 'Defaults:ec2-user !requiretty' | sudo tee -a /etc/sudoers
                         sudo yum update -y
                         sudo yum install -y docker git java-11-openjdk
                         sudo systemctl start docker
