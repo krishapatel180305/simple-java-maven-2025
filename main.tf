@@ -1,5 +1,7 @@
 provider "aws" {
   region = "us-east-1"  # Change to your desired region
+  access_key = AKIAQMNKFN3L6OJW7EIQ
+  secret_key = lfTJQdhqsaLS1AmAzRrQdRSN4g46SGU58DRUcIZt
 }
 
 resource "aws_key_pair" "generated_key" {
