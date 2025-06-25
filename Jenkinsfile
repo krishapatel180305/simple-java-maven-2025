@@ -1,47 +1,47 @@
 pipeline {
     agent any
+
     environment {
-        PATH = "/usr/local/bin:/usr/bin:/bin"
+        AWS_REGION = 'us-east-1'
     }
+
     stages {
-        stage('Install Dependencies') {
-            steps {
-                sh '''
-                sudo yum update -y || true
-                sudo yum install -y docker git unzip || true
-                sudo systemctl start docker || true
-                sudo systemctl enable docker || true
-
-                # Manually Install Terraform (No HashiCorp Repo)
-                wget https://releases.hashicorp.com/terraform/1.6.6/terraform_1.6.6_linux_amd64.zip
-                unzip terraform_1.6.6_linux_amd64.zip
-                sudo mv terraform /usr/local/bin/
-                terraform --version
-                '''
-            }
-        }
-
-        stage('Checkout Repository') {
-            steps {
-                git credentialsId: 'github-token', branch: 'main', url: 'https://github.com/krishapatel180305/simple-java-maven-2025.git'
-            }
-        }
-
-        stage('Terraform Init') {
-            steps {
-                sh 'terraform init'
-            }
-        }
-
         stage('Terraform Apply') {
             steps {
+                sh 'terraform init'
                 sh 'terraform apply -auto-approve'
             }
         }
 
-        stage('Start Docker Container') {
+        stage('Git Checkout') {
             steps {
-                sh 'docker-compose up -d'
+                git branch: 'main', url: 'https://github.com/krishapatel180305/simple-java-maven-2025.git'
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                sh 'docker build -t myapp .'
+            }
+        }
+
+        stage('Run Container & Test') {
+            steps {
+                sh 'docker run -d --name testcontainer -p 8080:8080 myapp'
+                sh 'sleep 20'
+                sh 'curl http://localhost:8080 || echo "App may not be reachable"'
+            }
+        }
+
+        stage('Tear Down Container') {
+            steps {
+                sh 'docker rm -f testcontainer || true'
+            }
+        }
+
+        stage('Terraform Destroy') {
+            steps {
+                sh 'terraform destroy -auto-approve'
             }
         }
     }
