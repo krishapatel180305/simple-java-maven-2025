@@ -11,7 +11,7 @@ resource "aws_instance" "build-server" {
   connection {
     type        = "ssh"
     user        = "ec2-user"
-    private_key = private_key = file("${path.module}/n-jenkins.pem")
+    private_key = file("${path.module}/n-jenkins.pem")
     host        = self.public_ip
   }
 
