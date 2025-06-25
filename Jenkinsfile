@@ -6,10 +6,15 @@ pipeline {
     }
 
     stages {
-        stage('Terraform Apply') {
+        stage('Terraform Init & Apply') {
             steps {
-                sh 'terraform init'
-                sh 'terraform apply -auto-approve'
+                sh '''
+                    echo "[INFO] Initializing Terraform"
+                    terraform init
+
+                    echo "[INFO] Applying Terraform (this may take a minute)"
+                    terraform apply -auto-approve | tee terraform.log
+                '''
             }
         }
 
@@ -27,9 +32,14 @@ pipeline {
 
         stage('Run Container & Test') {
             steps {
-                sh 'docker run -d --name testcontainer -p 8080:8080 myapp'
-                sh 'sleep 20'
-                sh 'curl http://localhost:8080 || echo "App may not be reachable"'
+                sh '''
+                    docker run -d --name testcontainer -p 8080:8080 myapp
+                    for i in {1..10}; do
+                      echo "[INFO] Waiting for app to respond... $((i*2))s"
+                      sleep 2
+                      curl --silent http://localhost:8080 && break
+                    done
+                '''
             }
         }
 
@@ -41,7 +51,10 @@ pipeline {
 
         stage('Terraform Destroy') {
             steps {
-                sh 'terraform destroy -auto-approve'
+                sh '''
+                    echo "[INFO] Destroying infrastructure"
+                    terraform destroy -auto-approve | tee terraform-destroy.log
+                '''
             }
         }
     }
