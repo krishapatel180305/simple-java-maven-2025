@@ -1,5 +1,7 @@
 provider "aws" {
-  region = "us-east-1"
+  region     = "us-east-1"
+  access_key = "AKIAQMNKFN3LYR5O66VV"
+  secret_key = "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"
 }
 
 resource "aws_instance" "build-server" {
