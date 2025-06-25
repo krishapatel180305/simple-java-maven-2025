@@ -1,9 +1,9 @@
 provider "aws" {
-  region = "ap-south-1"
+  region = "us-east-1"
 }
 
 resource "aws_instance" "build-server" {
-  ami                         = "ami-0f58b397bc5c1f2e8" # Amazon Linux 2 AMI
+  ami                         = "ami-000ec6c25978d5999" # Amazon Linux 2 AMI
   instance_type               = "t2.micro"
   key_name                    = "n-jenkins" # This must exactly match the key name you created in AWS
   associate_public_ip_address = true
