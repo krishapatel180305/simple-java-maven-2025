@@ -12,16 +12,23 @@ pipeline {
                     echo "[INFO] Initializing Terraform"
                     terraform init
 
-                    echo "[INFO] Applying Terraform (with Jenkins heartbeat)"
-                    (
-                      trap "exit" INT TERM
-                      trap "kill 0" EXIT
+                    echo "[INFO] Applying Terraform with heartbeat logging"
+                    {
                       while true; do
                         echo "[Jenkins Watchdog] Terraform still running... $(date)"
                         sleep 30
                       done
-                    ) &
+                    } &
+                    WATCHDOG_PID=$!
+
                     terraform apply -auto-approve | tee terraform.log
+                    RESULT=$?
+
+                    echo "[INFO] Stopping Jenkins Watchdog"
+                    kill $WATCHDOG_PID
+                    wait $WATCHDOG_PID 2>/dev/null
+
+                    exit $RESULT
                 '''
             }
         }
