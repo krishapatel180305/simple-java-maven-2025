@@ -12,7 +12,15 @@ pipeline {
                     echo "[INFO] Initializing Terraform"
                     terraform init
 
-                    echo "[INFO] Applying Terraform (this may take a minute)"
+                    echo "[INFO] Applying Terraform (with Jenkins heartbeat)"
+                    (
+                      trap "exit" INT TERM
+                      trap "kill 0" EXIT
+                      while true; do
+                        echo "[Jenkins Watchdog] Terraform still running... $(date)"
+                        sleep 30
+                      done
+                    ) &
                     terraform apply -auto-approve | tee terraform.log
                 '''
             }
