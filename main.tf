@@ -7,13 +7,13 @@ provider "aws" {
 resource "aws_instance" "build-server" {
   ami                         = "ami-000ec6c25978d5999" # Amazon Linux 2 AMI
   instance_type               = "t2.micro"
-  key_name                    = "n-jenkins" # This must exactly match the key name you created in AWS
+  key_name                    = "n-jenkins-v2" # This must exactly match the key name you created in AWS
   associate_public_ip_address = true
 
   connection {
     type        = "ssh"
     user        = "ec2-user"
-    private_key = file("${path.module}/n-jenkins.pem")
+    private_key = file("/n-jenkins-v2.pem")
     host        = self.public_ip
   }
 
