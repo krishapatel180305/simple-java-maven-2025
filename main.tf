@@ -4,7 +4,6 @@ provider "aws" {
   secret_key = "fjfGWJaPkJH4vLP+/6BwQE5mEBrhnIYktGfAxCQg"
 }
 
-# ✅ Security Group: SSH + App Access
 resource "aws_security_group" "allow_ssh" {
   name        = "allow_ssh"
   description = "Allow SSH and HTTP access"
@@ -33,7 +32,6 @@ resource "aws_security_group" "allow_ssh" {
   }
 }
 
-# ✅ EC2 Instance with SSH Provisioning
 resource "aws_instance" "build-server" {
   ami                         = "ami-000ec6c25978d5999"
   instance_type               = "t2.micro"
@@ -51,15 +49,14 @@ resource "aws_instance" "build-server" {
 
   provisioner "remote-exec" {
     inline = [
-      "echo '[INFO] Waiting for EC2 readiness...'",
-      "sleep 60",
-      "echo '[INFO] Updating packages...'",
+      "for i in {1..6}; do echo '[Provisioning] Waiting $((i*10))s...'; sleep 10; done",
+      "echo '[Provisioning] Updating packages...'",
       "sudo yum update -y",
-      "echo '[INFO] Installing Git, Java, Maven, Docker...'",
+      "echo '[Provisioning] Installing dependencies...'",
       "sudo yum install -y git java-11-openjdk-devel maven docker",
       "sudo usermod -aG docker ec2-user",
       "sudo systemctl start docker",
-      "echo '[INFO] Downloading Tomcat...'",
+      "echo '[Provisioning] Downloading Tomcat...'",
       "curl -O https://downloads.apache.org/tomcat/tomcat-9/v9.0.78/bin/apache-tomcat-9.0.78.tar.gz",
       "sudo tar -xzf apache-tomcat-9.0.78.tar.gz -C /opt/"
     ]
@@ -70,7 +67,6 @@ resource "aws_instance" "build-server" {
   }
 }
 
-# ✅ Output EC2 Public IP
 output "instance_public_ip" {
   value = aws_instance.build-server.public_ip
 }
